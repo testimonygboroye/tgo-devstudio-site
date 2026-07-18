@@ -1,5 +1,7 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+
+const base = import.meta.env.BASE_URL;
 ---
 
 <BaseLayout title="Home">
@@ -12,10 +14,10 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       platforms, and systems that create real value and lasting impact.
     </p>
     <div class="flex gap-4 justify-center">
-      <a href="/portfolio" class="px-6 py-3 bg-brand-gradient text-white rounded-lg hover:opacity-90 transition-opacity font-medium">
+      <a href={`${base}/portfolio`} class="px-6 py-3 bg-brand-gradient text-white rounded-lg hover:opacity-90 transition-opacity font-medium">
         View our work
       </a>
-      <a href="/about" class="px-6 py-3 border border-white/20 text-gray-200 rounded-lg hover:bg-white/5 transition-colors">
+      <a href={`${base}/about`} class="px-6 py-3 border border-white/20 text-gray-200 rounded-lg hover:bg-white/5 transition-colors">
         Our vision
       </a>
     </div>

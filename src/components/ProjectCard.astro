@@ -7,10 +7,11 @@ interface Props {
 }
 
 const { slug, title, summary, tags } = Astro.props;
+const base = import.meta.env.BASE_URL;
 ---
 
 <a
-  href={`/portfolio/${slug}`}
+  href={`${base}/portfolio/${slug}`}
   class="group block rounded-2xl p-6 bg-brand-surface/40 backdrop-blur-sm border border-white/10
          shadow-lg shadow-black/20 hover:border-brand-cyan/40 hover:shadow-brand-cyan/10
          transition-all duration-300"
