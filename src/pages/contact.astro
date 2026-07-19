@@ -1,5 +1,7 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+
+const apiUrl = import.meta.env.PUBLIC_API_URL;
 ---
 
 <BaseLayout title="Contact">
@@ -9,24 +11,194 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       Interested in working with TGO DevStudio? Send us a message.
     </p>
 
-    <!-- TODO: Replace YOUR_FORM_ID with a real Formspree endpoint before launch.
-         This is a temporary placeholder until Phase 2's backend replaces it. -->
-    <form action="https://formspree.io/f/YOUR_FORM_ID" method="POST" class="space-y-4">
+    <form id="contact-form" class="space-y-4" novalidate>
       <div>
-        <label class="block text-sm font-medium mb-1 text-ink-secondary" for="name">Name</label>
-        <input type="text" id="name" name="name" required class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-ink-primary" />
+        <label class="block text-sm font-medium mb-1 text-ink-secondary" for="name">Name *</label>
+        <input type="text" id="name" name="name" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-ink-primary" />
+        <p class="text-xs text-red-400 mt-1 hidden" data-error-for="name"></p>
       </div>
+
       <div>
-        <label class="block text-sm font-medium mb-1 text-ink-secondary" for="email">Email</label>
-        <input type="email" id="email" name="email" required class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-ink-primary" />
+        <label class="block text-sm font-medium mb-1 text-ink-secondary" for="email">Email *</label>
+        <input type="email" id="email" name="email" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-ink-primary" />
+        <p class="text-xs text-red-400 mt-1 hidden" data-error-for="email"></p>
       </div>
+
       <div>
-        <label class="block text-sm font-medium mb-1 text-ink-secondary" for="message">Message</label>
-        <textarea id="message" name="message" rows="5" required class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-ink-primary"></textarea>
+        <label class="block text-sm font-medium mb-1 text-ink-secondary" for="phone">Phone</label>
+        <input type="tel" id="phone" name="phone" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-ink-primary" />
       </div>
-      <button type="submit" class="px-6 py-3 bg-brand-gradient text-white rounded-lg hover:opacity-90 transition-opacity font-medium">
+
+      <div>
+        <label class="block text-sm font-medium mb-1 text-ink-secondary" for="company">Company / Organization</label>
+        <input type="text" id="company" name="company" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-ink-primary" />
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium mb-1 text-ink-secondary" for="reason">Reason for contact *</label>
+        <select id="reason" name="reason" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-ink-primary">
+          <option value="general">General Inquiry</option>
+          <option value="quote">Project Quote</option>
+          <option value="partnership">Partnership</option>
+          <option value="support">Support</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+
+      <div id="quote-fields" class="space-y-4 hidden">
+        <div>
+          <label class="block text-sm font-medium mb-1 text-ink-secondary" for="projectType">Project type</label>
+          <input type="text" id="projectType" name="projectType" placeholder="e.g. Web app, mobile app, SaaS platform" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-ink-primary" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-1 text-ink-secondary" for="budget">Budget range</label>
+          <input type="text" id="budget" name="budget" placeholder="e.g. $2,000 - $5,000" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-ink-primary" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-1 text-ink-secondary" for="timeline">Timeline</label>
+          <input type="text" id="timeline" name="timeline" placeholder="e.g. Within 1 month" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-ink-primary" />
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium mb-1 text-ink-secondary" for="message">Message *</label>
+        <textarea id="message" name="message" rows="5" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-ink-primary"></textarea>
+        <p class="text-xs text-red-400 mt-1 hidden" data-error-for="message"></p>
+      </div>
+
+      <!-- Honeypot field: hidden from real users via CSS, bots often fill it anyway -->
+      <div class="absolute -left-[9999px]" aria-hidden="true">
+        <label for="website">Website</label>
+        <input type="text" id="website" name="website" tabindex="-1" autocomplete="off" />
+      </div>
+
+      <div class="flex items-start gap-2">
+        <input type="checkbox" id="consent" name="consent" class="mt-1" />
+        <label for="consent" class="text-sm text-ink-secondary">
+          I consent to TGO DevStudio storing and using my information to respond to this inquiry. *
+        </label>
+      </div>
+      <p class="text-xs text-red-400 -mt-2 hidden" data-error-for="consent"></p>
+
+      <button type="submit" id="submit-btn" class="px-6 py-3 bg-brand-gradient text-white rounded-lg hover:opacity-90 transition-opacity font-medium disabled:opacity-50">
         Send message
       </button>
+
+      <div id="form-status" class="text-sm mt-2"></div>
     </form>
   </section>
 </BaseLayout>
+
+<script define:vars={{ apiUrl }}>
+  const reasonSelect = document.getElementById('reason');
+  const quoteFields = document.getElementById('quote-fields');
+  const form = document.getElementById('contact-form');
+  const submitBtn = document.getElementById('submit-btn');
+  const statusEl = document.getElementById('form-status');
+
+  reasonSelect.addEventListener('change', () => {
+    quoteFields.classList.toggle('hidden', reasonSelect.value !== 'quote');
+  });
+
+  function showFieldError(field, message) {
+    const el = form.querySelector(`[data-error-for="${field}"]`);
+    if (el) {
+      el.textContent = message;
+      el.classList.remove('hidden');
+    }
+  }
+
+  function clearFieldErrors() {
+    form.querySelectorAll('[data-error-for]').forEach((el) => {
+      el.textContent = '';
+      el.classList.add('hidden');
+    });
+  }
+
+  function isValidEmail(email) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  }
+
+  function validateForm() {
+    clearFieldErrors();
+    let valid = true;
+
+    if (!form.name.value.trim()) {
+      showFieldError('name', 'Name is required.');
+      valid = false;
+    }
+
+    if (!form.email.value.trim()) {
+      showFieldError('email', 'Email is required.');
+      valid = false;
+    } else if (!isValidEmail(form.email.value.trim())) {
+      showFieldError('email', 'Please enter a valid email address.');
+      valid = false;
+    }
+
+    if (!form.message.value.trim()) {
+      showFieldError('message', 'Message is required.');
+      valid = false;
+    } else if (form.message.value.trim().length < 10) {
+      showFieldError('message', 'Please provide a bit more detail (at least 10 characters).');
+      valid = false;
+    }
+
+    if (!form.consent.checked) {
+      showFieldError('consent', 'You must consent before sending your message.');
+      valid = false;
+    }
+
+    return valid;
+  }
+
+  function setStatus(message, type) {
+    statusEl.textContent = message;
+    statusEl.className = 'text-sm mt-2 ' + (
+      type === 'success' ? 'text-brand-cyan' :
+      type === 'error' ? 'text-red-400' :
+      'text-ink-secondary'
+    );
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    setStatus('', '');
+
+    if (!validateForm()) {
+      setStatus('Please fix the errors above.', 'error');
+      return;
+    }
+
+    submitBtn.disabled = true;
+    setStatus('Sending...', 'info');
+
+    const formData = new FormData(form);
+    const payload = Object.fromEntries(formData.entries());
+    payload.consent = form.consent.checked;
+
+    try {
+      const res = await fetch(`${apiUrl}/api/contact`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (res.status === 429) {
+        setStatus(data.error || 'Too many submissions. Please try again later.', 'error');
+      } else if (res.ok) {
+        setStatus("Message sent successfully. We'll get back to you shortly.", 'success');
+        form.reset();
+        quoteFields.classList.add('hidden');
+      } else {
+        setStatus(data.error || 'Something went wrong. Please try again.', 'error');
+      }
+    } catch (err) {
+      setStatus('Network error — please check your connection and try again.', 'error');
+    } finally {
+      submitBtn.disabled = false;
+    }
+  });
+</script>
