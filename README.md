@@ -1,43 +1,48 @@
-# Astro Starter Kit: Minimal
+# TGO DevStudio — Public Site
 
-```sh
-npm create astro@latest -- --template minimal
-```
+The public marketing/portfolio site for TGO DevStudio, the technology sub-brand of TGO.
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+**Live site:** https://testimonygboroye.github.io/tgo-devstudio-site/
 
-## 🚀 Project Structure
+## Stack
 
-Inside of your Astro project, you'll see the following folders and files:
+- **Astro 6** (pinned — Astro 7+ uses Rolldown, which lacks 32-bit ARM builds and breaks on this device's Termux environment)
+- **Tailwind CSS v3** (pinned — Tailwind v4 depends on Lightning CSS, which also lacks 32-bit ARM builds)
+- Content collections (Markdown) for portfolio case studies
+- Deployed via GitHub Actions → GitHub Pages
 
-```text
-/
-├── public/
-├── src/
-│   └── pages/
-│       └── index.astro
-└── package.json
-```
+## Project structure
 
-Astro looks for `.astro` or `.md` files in the `src/pages/` directory. Each page is exposed as a route based on its file name.
+src/
+├── components/     # Nav, Footer, ProjectCard
+├── content/
+│   └── projects/   # Markdown case studies (content collection)
+├── layouts/
+│   └── BaseLayout.astro
+├── pages/
+│   ├── index.astro
+│   ├── about.astro
+│   ├── portfolio.astro
+│   ├── portfolio/[slug].astro
+│   └── contact.astro
+└── styles/
+    └── global.css  # brand color tokens (CSS variables)
 
-There's nothing special about `src/components/`, but that's where we like to put any Astro/React/Vue/Svelte/Preact components.
+## Environment variables
 
-Any static assets, like images, can be placed in the `public/` directory.
+Create a `.env` file locally (gitignored):
 
-## 🧞 Commands
+PUBLIC_API_URL=http://localhost:3000
 
-All commands are run from the root of the project, from a terminal:
+In production, this is set inside `.github/workflows/deploy.yml` (pointing at the deployed Render backend).
 
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `npm install`             | Installs dependencies                            |
-| `npm run dev`             | Starts local dev server at `localhost:4321`      |
-| `npm run build`           | Build your production site to `./dist/`          |
-| `npm run preview`         | Preview your build locally, before deploying     |
-| `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `npm run astro -- --help` | Get help using the Astro CLI                     |
+## Commands
 
-## 👀 Want to learn more?
+| Command | Action |
+|---|---|
+| `npm run dev` | Local dev server at `localhost:4321/tgo-devstudio-site` |
+| `npm run build` | Production build to `./dist/` |
 
-Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+## Related repo
+
+Backend API: https://github.com/testimonygboroye/tgo-devstudio-backend
