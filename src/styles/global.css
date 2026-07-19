@@ -1,3 +1,15 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+:root {
+  --bg: #1A0B35;
+  --surface: #241245;
+  --text-primary: #D8CFF2;
+  --text-secondary: #A99FD1;
+  --text-muted: #756A9E;
+}
+
+html {
+  scroll-behavior: smooth;
+}

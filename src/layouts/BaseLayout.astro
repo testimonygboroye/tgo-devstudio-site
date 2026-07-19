@@ -17,9 +17,15 @@ const { title, description = "TGO DevStudio — building world-class software." 
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content={description} />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap"
+      rel="stylesheet"
+    />
     <title>{title} | TGO DevStudio</title>
   </head>
-  <body class="bg-brand-radial bg-brand-bg text-gray-100 antialiased min-h-screen">
+  <body class="bg-brand-radial bg-bg text-ink-primary antialiased min-h-screen font-sans">
     <Nav />
     <main class="min-h-screen">
       <slot />
