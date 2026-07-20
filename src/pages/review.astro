@@ -1,0 +1,233 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { getCollection } from 'astro:content';
+
+const apiUrl = import.meta.env.PUBLIC_API_URL;
+const projects = await getCollection('projects');
+---
+
+<BaseLayout title="Leave a Review">
+  <section class="max-w-xl mx-auto px-4 py-20">
+    <h1 class="font-display text-3xl font-semibold mb-8 text-ink-primary">Leave a Review</h1>
+    <p class="text-ink-secondary mb-8">
+      Worked with TGO DevStudio? We'd love to hear about your experience.
+    </p>
+
+    <form id="review-form" class="space-y-4" novalidate>
+      <div>
+        <label class="block text-sm font-medium mb-1 text-ink-secondary" for="name">Name *</label>
+        <input type="text" id="name" name="name" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-ink-primary" />
+        <p class="text-xs text-red-400 mt-1 hidden" data-error-for="name"></p>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium mb-1 text-ink-secondary" for="email">Email *</label>
+        <input type="email" id="email" name="email" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-ink-primary" />
+        <p class="text-xs text-red-400 mt-1 hidden" data-error-for="email"></p>
+        <p class="text-xs text-ink-muted mt-1">Private — never published.</p>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium mb-1 text-ink-secondary" for="company">Company</label>
+        <input type="text" id="company" name="company" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-ink-primary" />
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium mb-1 text-ink-secondary" for="role">Your role</label>
+        <input type="text" id="role" name="role" placeholder="e.g. Founder, Product Manager" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-ink-primary" />
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium mb-1 text-ink-secondary" for="project">Project</label>
+        <select id="project" name="projectSlug" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-ink-primary">
+          <option value="">General (not project-specific)</option>
+          {projects.map((project) => (
+            <option value={project.id} data-title={project.data.title}>{project.data.title}</option>
+          ))}
+        </select>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium mb-2 text-ink-secondary">Rating *</label>
+        <div class="flex gap-2" id="star-rating">
+          {[1, 2, 3, 4, 5].map((n) => (
+            <button
+              type="button"
+              class="star-btn text-3xl text-ink-muted hover:text-brand-cyan transition-colors"
+              data-value={n}
+              aria-label={`${n} star${n > 1 ? 's' : ''}`}
+            >
+              ★
+            </button>
+          ))}
+        </div>
+        <input type="hidden" id="rating" name="rating" value="" />
+        <p class="text-xs text-red-400 mt-1 hidden" data-error-for="rating"></p>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium mb-1 text-ink-secondary" for="testimonial">Your review *</label>
+        <textarea id="testimonial" name="testimonial" rows="5" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-ink-primary"></textarea>
+        <p class="text-xs text-red-400 mt-1 hidden" data-error-for="testimonial"></p>
+      </div>
+
+      <div class="absolute -left-[9999px]" aria-hidden="true">
+        <label for="website">Website</label>
+        <input type="text" id="website" name="website" tabindex="-1" autocomplete="off" />
+      </div>
+
+      <div class="flex items-start gap-2">
+        <input type="checkbox" id="consent" name="consent" class="mt-1" />
+        <label for="consent" class="text-sm text-ink-secondary">
+          I consent to TGO DevStudio publishing my name, company/role, and review publicly. *
+        </label>
+      </div>
+      <p class="text-xs text-red-400 -mt-2 hidden" data-error-for="consent"></p>
+
+      <button type="submit" id="submit-btn" class="px-6 py-3 bg-brand-gradient text-white rounded-lg hover:opacity-90 transition-opacity font-medium disabled:opacity-50">
+        Submit review
+      </button>
+
+      <div id="form-status" class="text-sm mt-2"></div>
+    </form>
+  </section>
+</BaseLayout>
+
+<script define:vars={{ apiUrl }}>
+  const form = document.getElementById('review-form');
+  const submitBtn = document.getElementById('submit-btn');
+  const statusEl = document.getElementById('form-status');
+  const ratingInput = document.getElementById('rating');
+  const starButtons = document.querySelectorAll('.star-btn');
+  const projectSelect = document.getElementById('project');
+
+  let currentRating = 0;
+
+  function paintStars(value) {
+    starButtons.forEach((btn) => {
+      const btnValue = Number(btn.dataset.value);
+      btn.classList.toggle('text-brand-cyan', btnValue <= value);
+      btn.classList.toggle('text-ink-muted', btnValue > value);
+    });
+  }
+
+  starButtons.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      currentRating = Number(btn.dataset.value);
+      ratingInput.value = currentRating;
+      paintStars(currentRating);
+    });
+  });
+
+  function showFieldError(field, message) {
+    const el = form.querySelector(`[data-error-for="${field}"]`);
+    if (el) {
+      el.textContent = message;
+      el.classList.remove('hidden');
+    }
+  }
+
+  function clearFieldErrors() {
+    form.querySelectorAll('[data-error-for]').forEach((el) => {
+      el.textContent = '';
+      el.classList.add('hidden');
+    });
+  }
+
+  function isValidEmail(email) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  }
+
+  function validateForm() {
+    clearFieldErrors();
+    let valid = true;
+
+    if (!form.name.value.trim()) {
+      showFieldError('name', 'Name is required.');
+      valid = false;
+    }
+
+    if (!form.email.value.trim()) {
+      showFieldError('email', 'Email is required.');
+      valid = false;
+    } else if (!isValidEmail(form.email.value.trim())) {
+      showFieldError('email', 'Please enter a valid email address.');
+      valid = false;
+    }
+
+    if (!currentRating) {
+      showFieldError('rating', 'Please select a rating.');
+      valid = false;
+    }
+
+    if (!form.testimonial.value.trim()) {
+      showFieldError('testimonial', 'Please write a review.');
+      valid = false;
+    } else if (form.testimonial.value.trim().length < 10) {
+      showFieldError('testimonial', 'Please provide a bit more detail (at least 10 characters).');
+      valid = false;
+    }
+
+    if (!form.consent.checked) {
+      showFieldError('consent', 'You must consent before submitting.');
+      valid = false;
+    }
+
+    return valid;
+  }
+
+  function setStatus(message, type) {
+    statusEl.textContent = message;
+    statusEl.className = 'text-sm mt-2 ' + (
+      type === 'success' ? 'text-brand-cyan' :
+      type === 'error' ? 'text-red-400' :
+      'text-ink-secondary'
+    );
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    setStatus('', '');
+
+    if (!validateForm()) {
+      setStatus('Please fix the errors above.', 'error');
+      return;
+    }
+
+    submitBtn.disabled = true;
+    setStatus('Submitting...', 'info');
+
+    const formData = new FormData(form);
+    const payload = Object.fromEntries(formData.entries());
+    payload.consent = form.consent.checked;
+    payload.rating = currentRating;
+
+    const selectedOption = projectSelect.options[projectSelect.selectedIndex];
+    payload.projectTitle = selectedOption ? selectedOption.dataset.title || '' : '';
+
+    try {
+      const res = await fetch(`${apiUrl}/api/reviews`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (res.status === 429) {
+        setStatus(data.error || 'Too many submissions. Please try again later.', 'error');
+      } else if (res.ok) {
+        setStatus('Thank you! Your review has been submitted and will appear once approved.', 'success');
+        form.reset();
+        currentRating = 0;
+        paintStars(0);
+      } else {
+        setStatus(data.error || 'Something went wrong. Please try again.', 'error');
+      }
+    } catch (err) {
+      setStatus('Network error — please check your connection and try again.', 'error');
+    } finally {
+      submitBtn.disabled = false;
+    }
+  });
+</script>
