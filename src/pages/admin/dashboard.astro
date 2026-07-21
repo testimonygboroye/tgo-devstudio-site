@@ -1,0 +1,63 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+
+const apiUrl = import.meta.env.PUBLIC_API_URL;
+const base = import.meta.env.BASE_URL;
+---
+
+<BaseLayout title="Admin Dashboard">
+  <section class="max-w-3xl mx-auto px-4 py-16">
+    <div class="flex items-center justify-between mb-10">
+      <div>
+        <h1 class="font-display text-2xl font-semibold text-ink-primary">Dashboard</h1>
+        <p id="welcome-text" class="text-ink-secondary text-sm mt-1"></p>
+      </div>
+      <button id="logout-btn" class="text-sm text-ink-secondary hover:text-red-400 transition-colors">
+        Log out
+      </button>
+    </div>
+
+    <div class="grid gap-4 sm:grid-cols-2">
+      <a href={`${base}/admin/invite`} class="block rounded-xl p-6 bg-surface/40 border border-white/10 hover:border-brand-cyan/40 transition-colors">
+        <h2 class="font-display text-lg font-semibold text-ink-primary mb-1">Invite people</h2>
+        <p class="text-sm text-ink-secondary">Bring collaborators into TGO DevStudio.</p>
+      </a>
+
+      <a href={`${base}/admin/users`} class="block rounded-xl p-6 bg-surface/40 border border-white/10 hover:border-brand-cyan/40 transition-colors">
+        <h2 class="font-display text-lg font-semibold text-ink-primary mb-1">Manage people</h2>
+        <p class="text-sm text-ink-secondary">View, block, or manage accounts.</p>
+      </a>
+    </div>
+  </section>
+</BaseLayout>
+
+<script define:vars={{ apiUrl, base }}>
+  const token = localStorage.getItem('tgo_admin_token');
+
+  if (!token) {
+    window.location.href = `${base}/admin/login`;
+  } else {
+    fetch(`${apiUrl}/api/auth/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error('Invalid session');
+        return res.json();
+      })
+      .then((user) => {
+        document.getElementById('welcome-text').textContent =
+          `Signed in as ${user.name} (${user.role.replace('_', ' ')})`;
+      })
+      .catch(() => {
+        localStorage.removeItem('tgo_admin_token');
+        localStorage.removeItem('tgo_admin_user');
+        window.location.href = `${base}/admin/login`;
+      });
+  }
+
+  document.getElementById('logout-btn').addEventListener('click', () => {
+    localStorage.removeItem('tgo_admin_token');
+    localStorage.removeItem('tgo_admin_user');
+    window.location.href = `${base}/admin/login`;
+  });
+</script>
