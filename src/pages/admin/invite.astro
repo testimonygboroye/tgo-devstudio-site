@@ -1,0 +1,130 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+
+const apiUrl = import.meta.env.PUBLIC_API_URL;
+const base = import.meta.env.BASE_URL;
+---
+
+<BaseLayout title="Invite">
+  <section class="max-w-lg mx-auto px-4 py-16">
+    <a href={`${base}/admin/dashboard`} class="text-sm text-ink-secondary hover:text-ink-primary mb-6 inline-block">&larr; Back to dashboard</a>
+    <h1 class="font-display text-2xl font-semibold mb-8 text-ink-primary">Invite someone</h1>
+
+    <form id="invite-form" class="space-y-4" novalidate>
+      <div>
+        <label class="block text-sm font-medium mb-1 text-ink-secondary" for="name">Full name</label>
+        <input type="text" id="name" name="name" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-ink-primary" />
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium mb-1 text-ink-secondary" for="email">Email</label>
+        <input type="email" id="email" name="email" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-ink-primary" />
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium mb-1 text-ink-secondary" for="role">Role</label>
+        <select id="role" name="role" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-ink-primary">
+          <option value="super_admin">Super Admin</option>
+          <option value="admin">Admin</option>
+          <option value="team_lead">Team Lead</option>
+          <option value="collaborator">Collaborator</option>
+        </select>
+        <p class="text-xs text-ink-muted mt-1">Only roles below your own will be selectable once permissions are enforced server-side; the server will still reject anything invalid.</p>
+      </div>
+
+      <fieldset>
+        <legend class="block text-sm font-medium mb-2 text-ink-secondary">Permissions to grant</legend>
+        <div class="space-y-2" id="permissions-list">
+          <label class="flex items-center gap-2 text-sm text-ink-secondary">
+            <input type="checkbox" name="perm" value="invite_users" /> Invite users
+          </label>
+          <label class="flex items-center gap-2 text-sm text-ink-secondary">
+            <input type="checkbox" name="perm" value="approve_access" /> Approve access
+          </label>
+          <label class="flex items-center gap-2 text-sm text-ink-secondary">
+            <input type="checkbox" name="perm" value="block_users" /> Block/unblock users
+          </label>
+          <label class="flex items-center gap-2 text-sm text-ink-secondary">
+            <input type="checkbox" name="perm" value="view_messages" /> View messages
+          </label>
+          <label class="flex items-center gap-2 text-sm text-ink-secondary">
+            <input type="checkbox" name="perm" value="view_reviews" /> View reviews
+          </label>
+          <label class="flex items-center gap-2 text-sm text-ink-secondary">
+            <input type="checkbox" name="perm" value="moderate_reviews" /> Moderate reviews
+          </label>
+          <label class="flex items-center gap-2 text-sm text-ink-secondary">
+            <input type="checkbox" name="perm" value="manage_content" /> Manage content
+          </label>
+          <label class="flex items-center gap-2 text-sm text-ink-secondary">
+            <input type="checkbox" name="perm" value="view_audit_log" /> View audit log
+          </label>
+        </div>
+      </fieldset>
+
+      <button type="submit" id="submit-btn" class="px-6 py-3 bg-brand-gradient text-white rounded-lg hover:opacity-90 transition-opacity font-medium disabled:opacity-50">
+        Send invite
+      </button>
+
+      <div id="form-status" class="text-sm"></div>
+    </form>
+  </section>
+</BaseLayout>
+
+<script define:vars={{ apiUrl, base }}>
+  const token = localStorage.getItem('tgo_admin_token');
+  if (!token) {
+    window.location.href = `${base}/admin/login`;
+  }
+
+  const form = document.getElementById('invite-form');
+  const submitBtn = document.getElementById('submit-btn');
+  const statusEl = document.getElementById('form-status');
+
+  function setStatus(message, type) {
+    statusEl.textContent = message;
+    statusEl.className = 'text-sm ' + (
+      type === 'success' ? 'text-brand-cyan' :
+      type === 'error' ? 'text-red-400' :
+      'text-ink-secondary'
+    );
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    submitBtn.disabled = true;
+    setStatus('Sending invite...', 'info');
+
+    const grantedPermissions = Array.from(form.querySelectorAll('input[name="perm"]:checked')).map((el) => el.value);
+
+    const payload = {
+      name: form.name.value.trim(),
+      email: form.email.value.trim(),
+      role: form.role.value,
+      grantedPermissions,
+    };
+
+    try {
+      const res = await fetch(`${apiUrl}/api/users/invite`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json().catch(() => ({}));
+
+      if (res.ok) {
+        setStatus('Invite sent successfully.', 'success');
+        form.reset();
+      } else {
+        setStatus(data.error || 'Failed to send invite.', 'error');
+      }
+    } catch (err) {
+      setStatus('Network error — please check your connection and try again.', 'error');
+    } finally {
+      submitBtn.disabled = false;
+    }
+  });
+</script>
