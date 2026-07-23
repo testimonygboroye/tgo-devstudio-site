@@ -23,7 +23,12 @@ const base = import.meta.env.BASE_URL;
 
       <div>
         <label class="block text-sm font-medium mb-1 text-ink-secondary" for="confirmPassword">Confirm password</label>
-        <input type="password" id="confirmPassword" name="confirmPassword" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-ink-primary" />
+        <div class="relative">
+          <input type="password" id="confirmPassword" name="confirmPassword" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 pr-16 text-ink-primary" />
+          <button type="button" id="toggle-confirm" class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-ink-secondary hover:text-ink-primary">
+            Show
+          </button>
+        </div>
       </div>
 
       <button type="submit" id="submit-btn" class="w-full px-6 py-3 bg-brand-gradient text-white rounded-lg hover:opacity-90 transition-opacity font-medium disabled:opacity-50">
@@ -43,14 +48,18 @@ const base = import.meta.env.BASE_URL;
   const form = document.getElementById('accept-form');
   const submitBtn = document.getElementById('submit-btn');
   const statusEl = document.getElementById('form-status');
-  const passwordInput = document.getElementById('password');
-  const toggleBtn = document.getElementById('toggle-password');
 
-  toggleBtn.addEventListener('click', () => {
-    const isHidden = passwordInput.type === 'password';
-    passwordInput.type = isHidden ? 'text' : 'password';
-    toggleBtn.textContent = isHidden ? 'Hide' : 'Show';
-  });
+  function setupToggle(inputId, btnId) {
+    const input = document.getElementById(inputId);
+    const btn = document.getElementById(btnId);
+    btn.addEventListener('click', () => {
+      const isHidden = input.type === 'password';
+      input.type = isHidden ? 'text' : 'password';
+      btn.textContent = isHidden ? 'Hide' : 'Show';
+    });
+  }
+  setupToggle('password', 'toggle-password');
+  setupToggle('confirmPassword', 'toggle-confirm');
 
   function setStatus(message, type) {
     statusEl.textContent = message;
