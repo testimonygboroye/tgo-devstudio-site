@@ -17,9 +17,10 @@ const base = import.meta.env.BASE_URL;
 
 <script define:vars={{ apiUrl, base }}>
   const token = localStorage.getItem('tgo_admin_token');
-  if (!token) {
-    window.location.href = `${base}/admin/login`;
-  }
+  if (!token) window.location.href = `${base}/admin/login`;
+
+  const meRaw = localStorage.getItem('tgo_admin_user');
+  const me = meRaw ? JSON.parse(meRaw) : null;
 
   const listEl = document.getElementById('user-list');
   const statusEl = document.getElementById('status-msg');
@@ -33,7 +34,6 @@ const base = import.meta.env.BASE_URL;
     const colors = {
       active: 'bg-green-500/20 text-green-400',
       blocked: 'bg-yellow-500/20 text-yellow-400',
-      banned: 'bg-red-500/20 text-red-400',
       pending_invite: 'bg-white/10 text-ink-secondary',
       pending_verification: 'bg-white/10 text-ink-secondary',
     };
@@ -48,35 +48,62 @@ const base = import.meta.env.BASE_URL;
       if (!res.ok) throw new Error('Failed to load');
       const users = await res.json();
 
-      listEl.innerHTML = users.map((u) => `
-        <div class="rounded-xl p-4 bg-surface/40 border border-white/10 flex items-center justify-between flex-wrap gap-3">
-          <div>
-            <p class="text-ink-primary font-medium">${u.name} ${statusBadge(u.status)}</p>
-            <p class="text-ink-secondary text-sm">${u.email} &middot; ${u.role.replace('_', ' ')}</p>
-            ${u.founderLock ? '<p class="text-xs text-brand-cyan mt-1">🔒 Founder-locked</p>' : ''}
+      listEl.innerHTML = users.map((u) => {
+        const isSelf = me && u._id === me.id;
+        let actions = '';
+
+        if (!isSelf) {
+          if (u.status === 'active') {
+            actions += `<button data-action="block" data-id="${u._id}" data-name="${u.name}" class="text-xs px-3 py-1.5 rounded-lg border border-white/10 text-ink-secondary hover:text-yellow-400 hover:border-yellow-400/40">Block</button>`;
+          }
+          if (u.status === 'blocked') {
+            actions += `<button data-action="unblock" data-id="${u._id}" data-name="${u.name}" class="text-xs px-3 py-1.5 rounded-lg border border-white/10 text-ink-secondary hover:text-brand-cyan hover:border-brand-cyan/40">Unblock</button>`;
+          }
+          actions += `<button data-action="delete" data-id="${u._id}" data-name="${u.name}" class="text-xs px-3 py-1.5 rounded-lg border border-red-400/20 text-red-400/70 hover:text-red-400 hover:border-red-400/50">Delete</button>`;
+        }
+
+        return `
+          <div class="rounded-xl p-4 bg-surface/40 border border-white/10 flex items-center justify-between flex-wrap gap-3">
+            <div>
+              <p class="text-ink-primary font-medium">${u.name} ${isSelf ? '<span class="text-xs text-ink-muted">(you)</span>' : ''} ${statusBadge(u.status)}</p>
+              <p class="text-ink-secondary text-sm">${u.email} &middot; ${u.role.replace('_', ' ')}</p>
+              ${u.founderLock ? '<p class="text-xs text-brand-cyan mt-1">Founder-locked</p>' : ''}
+              ${u.pendingRole ? `<p class="text-xs text-yellow-400 mt-1">Pending promotion to ${u.pendingRole.replace('_', ' ')} (awaiting their confirmation)</p>` : ''}
+            </div>
+            <div class="flex gap-2">${actions}</div>
           </div>
-          <div class="flex gap-2">
-            ${u.status === 'active' ? `<button data-action="block" data-id="${u._id}" class="text-xs px-3 py-1.5 rounded-lg border border-white/10 text-ink-secondary hover:text-red-400 hover:border-red-400/40">Block</button>` : ''}
-            ${u.status === 'blocked' ? `<button data-action="unblock" data-id="${u._id}" class="text-xs px-3 py-1.5 rounded-lg border border-white/10 text-ink-secondary hover:text-brand-cyan hover:border-brand-cyan/40">Unblock</button>` : ''}
-            ${u.status !== 'banned' ? `<button data-action="ban" data-id="${u._id}" class="text-xs px-3 py-1.5 rounded-lg border border-white/10 text-ink-secondary hover:text-red-400 hover:border-red-400/40">Ban</button>` : ''}
-            ${u.status === 'banned' ? `<button data-action="unban" data-id="${u._id}" class="text-xs px-3 py-1.5 rounded-lg border border-white/10 text-ink-secondary hover:text-brand-cyan hover:border-brand-cyan/40">Unban</button>` : ''}
-          </div>
-        </div>
-      `).join('');
+        `;
+      }).join('');
 
       document.querySelectorAll('[data-action]').forEach((btn) => {
-        btn.addEventListener('click', () => handleAction(btn.dataset.action, btn.dataset.id));
+        btn.addEventListener('click', () => handleAction(btn.dataset.action, btn.dataset.id, btn.dataset.name));
       });
     } catch (err) {
       setStatus('Failed to load users.', 'error');
     }
   }
 
-  async function handleAction(action, id) {
+  async function handleAction(action, id, name) {
+    if (action === 'block') {
+      if (!confirm(`Block ${name}? They will lose access immediately. This can be reversed with Unblock.`)) return;
+    }
+    if (action === 'delete') {
+      const confirmed = prompt(`This will PERMANENTLY delete ${name}'s account. This cannot be undone.\n\nType DELETE to confirm:`);
+      if (confirmed !== 'DELETE') {
+        setStatus('Delete cancelled.', 'info');
+        return;
+      }
+    }
+
     setStatus('Processing...', 'info');
     try {
-      const res = await fetch(`${apiUrl}/api/users/${id}/${action}`, {
-        method: 'POST',
+      const method = action === 'delete' ? 'DELETE' : 'POST';
+      const url = action === 'delete'
+        ? `${apiUrl}/api/users/${id}`
+        : `${apiUrl}/api/users/${id}/${action}`;
+
+      const res = await fetch(url, {
+        method,
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json().catch(() => ({}));

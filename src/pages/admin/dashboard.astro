@@ -7,7 +7,7 @@ const base = import.meta.env.BASE_URL;
 
 <BaseLayout title="Admin Dashboard">
   <section class="max-w-3xl mx-auto px-4 py-16">
-    <div class="flex items-center justify-between mb-10">
+    <div class="flex items-center justify-between mb-6">
       <div>
         <h1 class="font-display text-2xl font-semibold text-ink-primary">Dashboard</h1>
         <p id="welcome-text" class="text-ink-secondary text-sm mt-1"></p>
@@ -15,6 +15,20 @@ const base = import.meta.env.BASE_URL;
       <button id="logout-btn" class="text-sm text-ink-secondary hover:text-red-400 transition-colors">
         Log out
       </button>
+    </div>
+
+    <div id="role-change-banner" class="hidden mb-8 rounded-xl p-4 bg-yellow-500/10 border border-yellow-500/30">
+      <p class="text-sm text-ink-primary mb-3">
+        <strong id="role-change-text"></strong>
+      </p>
+      <div class="mb-3">
+        <input type="password" id="confirm-password" placeholder="Enter your password to confirm" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-ink-primary" />
+      </div>
+      <div class="flex gap-2">
+        <button id="confirm-role-btn" class="text-xs px-3 py-1.5 rounded-lg bg-brand-gradient text-white">Confirm change</button>
+        <button id="reject-role-btn" class="text-xs px-3 py-1.5 rounded-lg border border-white/10 text-ink-secondary">Decline</button>
+      </div>
+      <p id="role-banner-status" class="text-xs mt-2"></p>
     </div>
 
     <div class="grid gap-4 sm:grid-cols-2">
@@ -47,6 +61,51 @@ const base = import.meta.env.BASE_URL;
       .then((user) => {
         document.getElementById('welcome-text').textContent =
           `Signed in as ${user.name} (${user.role.replace('_', ' ')})`;
+
+        if (user.pendingRole) {
+          const banner = document.getElementById('role-change-banner');
+          banner.classList.remove('hidden');
+          document.getElementById('role-change-text').textContent =
+            `A change to ${user.pendingRole.replace('_', ' ')} has been proposed for your account. Confirm to accept it.`;
+
+          const passwordInput = document.getElementById('confirm-password');
+          const bannerStatus = document.getElementById('role-banner-status');
+
+          function setBannerStatus(msg, type) {
+            bannerStatus.textContent = msg;
+            bannerStatus.className = 'text-xs mt-2 ' + (type === 'error' ? 'text-red-400' : 'text-brand-cyan');
+          }
+
+          document.getElementById('confirm-role-btn').addEventListener('click', async () => {
+            if (!passwordInput.value) {
+              setBannerStatus('Enter your password to confirm.', 'error');
+              return;
+            }
+            const res = await fetch(`${apiUrl}/api/users/${user.id}/confirm-role-change`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+              body: JSON.stringify({ password: passwordInput.value }),
+            });
+            const data = await res.json().catch(() => ({}));
+            if (res.ok) {
+              setBannerStatus('Role updated. Reloading...', 'success');
+              setTimeout(() => window.location.reload(), 1000);
+            } else {
+              setBannerStatus(data.error || 'Failed to confirm.', 'error');
+            }
+          });
+
+          document.getElementById('reject-role-btn').addEventListener('click', async () => {
+            const res = await fetch(`${apiUrl}/api/users/${user.id}/reject-role-change`, {
+              method: 'POST',
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            if (res.ok) {
+              setBannerStatus('Change declined.', 'success');
+              setTimeout(() => window.location.reload(), 1000);
+            }
+          });
+        }
       })
       .catch(() => {
         localStorage.removeItem('tgo_admin_token');
